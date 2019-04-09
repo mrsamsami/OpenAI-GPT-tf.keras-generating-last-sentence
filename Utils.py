@@ -3,6 +3,9 @@ import tensorflow as tf
 from TextUtils import transform_texts
 import pickle
 import csv
+import os
+import logging
+import json
 
 def shape_list(x):
     """
@@ -11,6 +14,17 @@ def shape_list(x):
     ps = x.get_shape().as_list()
     ts = tf.shape(x)
     return [ts[i] if ps[i] is None else ps[i] for i in range(len(ps))]
+
+class Logger(object):
+    def __init__(self, path):
+        logging.basicConfig(filename=path, level=logging.INFO, format='%(asctime)s - %(message)s',
+                            datefmt='%d-%b-%y %H:%M:%S')
+        self._logger = logging.getLogger('trainlogger')
+        self._logger.info('Train-Logger started ...')
+
+    def log(self, **kwargs):
+        # print(kwargs)
+        self._logger.info(kwargs)
 
 def get_paragraphs():
     paragraphs = []
@@ -58,9 +72,9 @@ def iter_data(n_batch, n_epochs = None, train = True):
 
     else:
         n = len(tokens) // 10
+        tokens, masks = tokens[-n:], masks[-n:]
         pi = np.random.permutation(n)
-        tokens = tokens[-n][pi]
-        masks = masks[-n][pi]
+        tokens, masks = tokens[pi], masks[pi]
 
         for i in range(0, n, n_batch):
             if i + n_batch > n:
