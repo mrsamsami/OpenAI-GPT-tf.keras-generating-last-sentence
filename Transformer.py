@@ -314,13 +314,15 @@ class Transformer(Model):
             losses: shape = (batch size, )
         """
         tokens = tf.reshape(inputs[0], [-1, self.n_ctx, 2])
-        masks = tf.reshape(inputs[1], [-1, self.n_ctx])
+        masks1 = tf.reshape(inputs[1], (-1, self.n_ctx))
+        masks2 = tf.pad(masks1, [[0, 0], [0, 1]])
+        masks2 = tf.slice(masks2, [0, 1], [-1, self.n_ctx])
         hidden1 = self.embed(tokens)
         self.embed.we = dropout(self.embed.we, self.embd_pdrop, self.train)
         hidden2 = self.transformer_stack(hidden1)
         hidden3 = tf.reshape(hidden2, [-1, self.n_ctx, self.n_embd])
-        hidden3 = tf.reshape(tf.boolean_mask(hidden3, masks), [-1, self.n_embd])
-        tokens = tf.boolean_mask(tokens[:,:,0], masks)
+        hidden3 = tf.reshape(tf.boolean_mask(hidden3, masks2), [-1, self.n_embd])
+        tokens = tf.boolean_mask(tokens[:,:,0], masks1)
         logits = tf.reshape(tf.matmul(hidden3, self.embed.we[:self.n_vocab, :], transpose_b=True),
                             [-1, self.n_vocab])
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
